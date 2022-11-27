@@ -23,8 +23,8 @@ class DirectiveSerializer(ModelSerializer):
         read_only_fields = ('user', 'station')
 
     def create(self, validated_data):
-        execute_derective(**validated_data)
-        return Directive.objects.create(**validated_data)
+        execute_derective(**validated_data, **self.context)
+        return Directive.objects.create(**validated_data, **self.context)
 
 
 class CoordinateSerializer(ModelSerializer):

@@ -18,7 +18,7 @@ from stations.models import Station, Directive, Coordinate
     retrieve=extend_schema(description='Все атрибуты конкретной станции'),
     destroy=extend_schema(description='Удаление станции'),
     create=extend_schema(description='Создание станции'),
-    update=extend_schema(description='Обновление всехполей станции'),
+    update=extend_schema(description='Обновление всех полей станции'),
     partial_update=extend_schema(description='Изменение отдельных полей')
 )
 class StationViewSet(ModelViewSet):
@@ -32,15 +32,6 @@ class StationViewSet(ModelViewSet):
             return DirectiveSerializer
         return StationSerializer
 
-    def perform_create(self, serializer):
-        if self.action == 'state':
-            if self.request.method == 'POST':
-                station_id = self.kwargs.get('pk')
-                station = Station.objects.get(pk=station_id)
-                serializer.save(user=self.request.user, station=station)
-            serializer.save(user=self.request.user)
-        serializer.save()
-
     @extend_schema(responses=CoordinateSerializer, request=DirectiveSerializer,
                    description=('Отправка указания и получения '
                                 'актуальных координат.'))
@@ -50,16 +41,27 @@ class StationViewSet(ModelViewSet):
         url_path='state'
     )
     def state(self, request, pk):
-        coord = get_object_or_404(Coordinate, station_id=pk)
         if request.method == 'GET':
-            serializer = self.get_serializer(coord)
+            coord = get_object_or_404(Coordinate, station_id=pk)
+            serializer = self.get_serializer(
+                coord,
+                context={'user': self.request.user}
+            )
             return Response(serializer.data)
         if request.method == 'POST':
-            serializer = self.get_serializer(data=request.data)
+            station = Station.objects.get(pk=pk)
+            serializer = self.get_serializer(
+                data=request.data,
+                context={
+                    'user': self.request.user,
+                    'station': station,
+                }
+                )
             if serializer.is_valid():
                 self.perform_create(serializer)
                 coord = get_object_or_404(Coordinate, station_id=pk)
                 serializer = CoordinateSerializer(coord)
+                serializer.context['station_id'] = pk
                 return Response(
                     serializer.data,
                     status=status.HTTP_201_CREATED

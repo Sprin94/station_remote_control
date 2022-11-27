@@ -68,7 +68,7 @@ class Directive(models.Model):
 class Coordinate(models.Model):
     """Координаты станции."""
 
-    station = models.ForeignKey(
+    station = models.OneToOneField(
         Station,
         verbose_name='Станция',
         related_name='coordinates',
